@@ -19,20 +19,20 @@ function dateInChicago(addDays = 0) {
 }
 
 async function apiRequest(path, apiKey) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const apiResponse = await fetch(`${API_BASE}${path}`, {
     headers: {
       "x-apisports-key": apiKey
     }
   });
 
-  const data = await response.json();
+  const data = await apiResponse.json();
 
   if (
-    !response.ok ||
+    !apiResponse.ok ||
     (data.errors && Object.keys(data.errors).length > 0)
   ) {
     throw new Error(
-      JSON.stringify(data.errors || `API error ${response.status}`)
+      JSON.stringify(data.errors || `API error ${apiResponse.status}`)
     );
   }
 
@@ -54,25 +54,35 @@ export default async function handler(request, response) {
     : 3;
 
   try {
-    const from = dateInChicago(0);
-    const to = dateInChicago(days);
+    const dates = [];
 
-    const [live, upcomingRaw] = await Promise.all([
+    for (let day = 0; day <= days; day++) {
+      dates.push(dateInChicago(day));
+    }
+
+    const livePromise = apiRequest(
+      "/fixtures?live=all&timezone=America%2FChicago",
+      apiKey
+    );
+
+    const upcomingPromises = dates.map(date =>
       apiRequest(
-        "/fixtures?live=all&timezone=America%2FChicago",
-        apiKey
-      ),
-      apiRequest(
-        `/fixtures?from=${from}&to=${to}&timezone=America%2FChicago`,
+        `/fixtures?date=${date}&timezone=America%2FChicago`,
         apiKey
       )
+    );
+
+    const [live, upcomingDays] = await Promise.all([
+      livePromise,
+      Promise.all(upcomingPromises)
     ]);
 
     const liveIds = new Set(
       live.map(match => match.fixture.id)
     );
 
-    const upcoming = upcomingRaw
+    const upcoming = upcomingDays
+      .flat()
       .filter(match => !liveIds.has(match.fixture.id))
       .filter(match =>
         ["NS", "TBD"].includes(match.fixture.status.short)
@@ -82,6 +92,11 @@ export default async function handler(request, response) {
           new Date(a.fixture.date) -
           new Date(b.fixture.date)
       );
+
+    response.setHeader(
+      "Cache-Control",
+      "s-maxage=60, stale-while-revalidate=120"
+    );
 
     return response.status(200).json({
       live,
