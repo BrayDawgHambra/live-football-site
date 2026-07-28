@@ -330,7 +330,7 @@ function watchMarkup(leagueName) {
       };
     }
 
-   function gameMarkup(match, isLive) {
+  function gameMarkup(match, isLive) {
   const kickoff = formatKickoff(match.fixture.date);
   const status = match.fixture.status;
   const homeGoals = match.goals.home ?? "–";
@@ -369,27 +369,8 @@ function watchMarkup(leagueName) {
     </article>
   `;
 }
-    
-      return `
-        <article class="game">
-          <div class="game-time ${isLive ? "live-text" : ""}">
-            <strong>${isLive ? statusLabel : kickoff.day}</strong><br>
-            ${isLive ? "LIVE" : kickoff.time + " CT"}
-          </div>
-          <div class="teams">
-            <div class="team">
-              <img src="${escapeHtml(match.teams.home.logo)}" alt="">
-              <span>${escapeHtml(match.teams.home.name)}</span>
-            </div>
-            <div class="team">
-              <img src="${escapeHtml(match.teams.away.logo)}" alt="">
-              <span>${escapeHtml(match.teams.away.name)}</span>
-            </div>
-          </div>
-          <div class="score">${isLive ? `${homeGoals}<br>${awayGoals}` : "vs"}</div>
-        </article>`;
-    }
 
+function leagueMarkup(group, isLive) {
     function leagueMarkup(group, isLive) {
       const { league, matches } = group;
       return `
