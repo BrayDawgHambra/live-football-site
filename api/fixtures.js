@@ -18,14 +18,6 @@ function dateInChicago(addDays = 0) {
   return `${year}-${month}-${day}`;
 }
 
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Chicago",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(date);
-}
-
 async function apiRequest(path, apiKey) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
