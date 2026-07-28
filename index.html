@@ -248,7 +248,7 @@
 
       try {
         const days = rangeSelect.value;
-        const response = await fetch(`/.netlify/functions/fixtures?days=${days}`);
+       const response = await fetch(`/api/fixtures?days=${days}`);
         const data = await response.json();
 
         if (!response.ok) throw new Error(data.error || "Could not load matches.");
