@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07111f" />
+  <title>Live Football</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: #101d2e;
+      --panel-2: #17283d;
+      --text: #f5f7fb;
+      --muted: #9eb0c6;
+      --accent: #54e38e;
+      --line: rgba(255,255,255,.09);
+      --danger: #ff647c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(45, 120, 255, .20), transparent 30rem),
+        var(--bg);
+    }
+    header, main { width: min(1100px, calc(100% - 28px)); margin-inline: auto; }
+    header { padding: 34px 0 20px; }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -.05em; }
+    .subtitle { color: var(--muted); margin: 8px 0 0; }
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      margin: 22px 0;
+    }
+    button, select {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font: inherit;
+    }
+    button { cursor: pointer; }
+    button:hover { background: var(--panel-2); }
+    .status { color: var(--muted); margin-left: auto; font-size: .92rem; }
+    .section-title { display: flex; gap: 10px; align-items: center; margin: 26px 0 12px; }
+    .section-title h2 { margin: 0; font-size: 1.25rem; }
+    .pill {
+      min-width: 28px; padding: 4px 8px; text-align: center;
+      border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: .8rem;
+    }
+    .live-pill { color: var(--accent); }
+    .league {
+      background: rgba(16,29,46,.86);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .league-button {
+      width: 100%;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      text-align: left;
+    }
+    .league-logo { width: 34px; height: 34px; object-fit: contain; }
+    .league-name { font-weight: 750; }
+    .league-country { display: block; color: var(--muted); font-size: .83rem; margin-top: 2px; }
+    .league-count { margin-left: auto; color: var(--muted); }
+    .chevron { transition: transform .2s ease; }
+    .league.open .chevron { transform: rotate(180deg); }
+    .games { display: none; border-top: 1px solid var(--line); }
+    .league.open .games { display: block; }
+    .game {
+      display: grid;
+      grid-template-columns: minmax(100px, 145px) 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .game:last-child { border-bottom: 0; }
+    .game-time { color: var(--muted); font-size: .88rem; }
+    .teams { display: grid; gap: 8px; }
+    .team { display: flex; align-items: center; gap: 8px; font-weight: 650; }
+    .team img { width: 23px; height: 23px; object-fit: contain; }
+    .score { font-size: 1.18rem; font-weight: 850; min-width: 55px; text-align: right; }
+    .live-text { color: var(--accent); }
+    .empty, .error {
+      padding: 22px;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .error { color: #ffd2d9; border-color: rgba(255,100,124,.35); }
+    footer { color: var(--muted); text-align: center; padding: 36px 14px; font-size: .82rem; }
+    @media (max-width: 640px) {
+      .game { grid-template-columns: 1fr auto; }
+      .game-time { grid-column: 1 / -1; }
+      .status { width: 100%; margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Live Football</h1>
+    <p class="subtitle">Live and upcoming matches, organized by clickable leagues.</p>
+    <div class="toolbar">
+      <button id="refreshButton">↻ Refresh</button>
+      <select id="rangeSelect" aria-label="Upcoming game range">
+        <option value="1">Next 24 hours</option>
+        <option value="3" selected>Next 3 days</option>
+        <option value="7">Next 7 days</option>
+      </select>
+      <span id="status" class="status">Loading matches…</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="section-title">
+      <h2>Live now</h2>
+      <span id="liveCount" class="pill live-pill">0</span>
+    </div>
+    <section id="liveLeagues"></section>
+
+    <div class="section-title">
+      <h2>Upcoming</h2>
+      <span id="upcomingCount" class="pill">0</span>
+    </div>
+    <section id="upcomingLeagues"></section>
+  </main>
+
+  <footer>Match data provided through API-Football.</footer>
+
+  <script>
+    const liveContainer = document.getElementById("liveLeagues");
+    const upcomingContainer = document.getElementById("upcomingLeagues");
+    const liveCount = document.getElementById("liveCount");
+    const upcomingCount = document.getElementById("upcomingCount");
+    const statusText = document.getElementById("status");
+    const rangeSelect = document.getElementById("rangeSelect");
+    const refreshButton = document.getElementById("refreshButton");
+
+    const escapeHtml = (value = "") =>
+      String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[char]);
+
+    function groupByLeague(matches) {
+      return matches.reduce((groups, match) => {
+        const key = String(match.league.id);
+        if (!groups[key]) groups[key] = { league: match.league, matches: [] };
+        groups[key].matches.push(match);
+        return groups;
+      }, {});
+    }
+
+    function formatKickoff(dateString) {
+      const date = new Date(dateString);
+      return {
+        day: new Intl.DateTimeFormat("en-US", {
+          weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago"
+        }).format(date),
+        time: new Intl.DateTimeFormat("en-US", {
+          hour: "numeric", minute: "2-digit", timeZone: "America/Chicago"
+        }).format(date)
+      };
+    }
+
+    function gameMarkup(match, isLive) {
+      const kickoff = formatKickoff(match.fixture.date);
+      const status = match.fixture.status;
+      const homeGoals = match.goals.home ?? "–";
+      const awayGoals = match.goals.away ?? "–";
+      const statusLabel = isLive
+        ? `${escapeHtml(status.elapsed ?? "")}${status.elapsed ? "'" : ""} ${escapeHtml(status.short)}`
+        : kickoff.time;
+
+      return `
+        <article class="game">
+          <div class="game-time ${isLive ? "live-text" : ""}">
+            <strong>${isLive ? statusLabel : kickoff.day}</strong><br>
+            ${isLive ? "LIVE" : kickoff.time + " CT"}
+          </div>
+          <div class="teams">
+            <div class="team">
+              <img src="${escapeHtml(match.teams.home.logo)}" alt="">
+              <span>${escapeHtml(match.teams.home.name)}</span>
+            </div>
+            <div class="team">
+              <img src="${escapeHtml(match.teams.away.logo)}" alt="">
+              <span>${escapeHtml(match.teams.away.name)}</span>
+            </div>
+          </div>
+          <div class="score">${isLive ? `${homeGoals}<br>${awayGoals}` : "vs"}</div>
+        </article>`;
+    }
+
+    function leagueMarkup(group, isLive) {
+      const { league, matches } = group;
+      return `
+        <article class="league">
+          <button class="league-button" type="button" aria-expanded="false">
+            <img class="league-logo" src="${escapeHtml(league.logo)}" alt="">
+            <span>
+              <span class="league-name">${escapeHtml(league.name)}</span>
+              <span class="league-country">${escapeHtml(league.country)}</span>
+            </span>
+            <span class="league-count">${matches.length} game${matches.length === 1 ? "" : "s"}</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="games">
+            ${matches.map(match => gameMarkup(match, isLive)).join("")}
+          </div>
+        </article>`;
+    }
+
+    function render(container, matches, isLive) {
+      if (!matches.length) {
+        container.innerHTML = `<div class="empty">No ${isLive ? "live" : "upcoming"} matches found.</div>`;
+        return;
+      }
+      const groups = Object.values(groupByLeague(matches))
+        .sort((a, b) => a.league.name.localeCompare(b.league.name));
+      container.innerHTML = groups.map(group => leagueMarkup(group, isLive)).join("");
+
+      container.querySelectorAll(".league-button").forEach(button => {
+        button.addEventListener("click", () => {
+          const league = button.closest(".league");
+          const isOpen = league.classList.toggle("open");
+          button.setAttribute("aria-expanded", String(isOpen));
+        });
+      });
+    }
+
+    async function loadMatches() {
+      statusText.textContent = "Loading matches…";
+      refreshButton.disabled = true;
+
+      try {
+        const days = rangeSelect.value;
+        const response = await fetch(`/.netlify/functions/fixtures?days=${days}`);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || "Could not load matches.");
+
+        render(liveContainer, data.live, true);
+        render(upcomingContainer, data.upcoming, false);
+        liveCount.textContent = data.live.length;
+        upcomingCount.textContent = data.upcoming.length;
+
+        const updated = new Date(data.updatedAt);
+        statusText.textContent = `Updated ${updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+      } catch (error) {
+        const message = `<div class="error">${escapeHtml(error.message)}</div>`;
+        liveContainer.innerHTML = message;
+        upcomingContainer.innerHTML = message;
+        statusText.textContent = "Could not load data";
+      } finally {
+        refreshButton.disabled = false;
+      }
+    }
+
+    refreshButton.addEventListener("click", loadMatches);
+    rangeSelect.addEventListener("change", loadMatches);
+    loadMatches();
+  </script>
+</body>
+</html>
