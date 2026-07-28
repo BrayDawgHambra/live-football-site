@@ -4,6 +4,20 @@ function dateInChicago(addDays = 0) {
   const date = new Date();
   date.setDate(date.getDate() + addDays);
 
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+
+  const year = parts.find(part => part.type === "year").value;
+  const month = parts.find(part => part.type === "month").value;
+  const day = parts.find(part => part.type === "day").value;
+
+  return `${year}-${month}-${day}`;
+}
+
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
     year: "numeric",
