@@ -1,444 +1,1079 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#07111f" />
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta name="theme-color" content="#07111f">
+
   <title>Live Football</title>
+
   <style>
     :root {
-      --bg: #07111f;
+      --background: #07111f;
       --panel: #101d2e;
-      --panel-2: #17283d;
+      --panel-light: #17283d;
       --text: #f5f7fb;
       --muted: #9eb0c6;
       --accent: #54e38e;
-      --line: rgba(255,255,255,.09);
-      --danger: #ff647c;
+      --border: rgba(255, 255, 255, 0.09);
+      --error: #ff8b9d;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
       color: var(--text);
+
       background:
-        radial-gradient(circle at top right, rgba(45, 120, 255, .20), transparent 30rem),
-        var(--bg);
+        radial-gradient(
+          circle at top right,
+          rgba(45, 120, 255, 0.2),
+          transparent 30rem
+        ),
+        var(--background);
     }
-    header, main { width: min(1100px, calc(100% - 28px)); margin-inline: auto; }
-    header { padding: 34px 0 20px; }
-    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -.05em; }
-    .subtitle { color: var(--muted); margin: 8px 0 0; }
+
+    header,
+    main {
+      width: min(1100px, calc(100% - 28px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 34px 0 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
     .toolbar {
-      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
       margin: 22px 0;
     }
-    button, select {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 11px 14px;
+
+    button {
+      padding: 11px 15px;
+
       font: inherit;
+      font-weight: 700;
+
+      color: var(--text);
+      background: var(--panel);
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      cursor: pointer;
     }
-    button { cursor: pointer; }
-    button:hover { background: var(--panel-2); }
-    .status { color: var(--muted); margin-left: auto; font-size: .92rem; }
-    .section-title { display: flex; gap: 10px; align-items: center; margin: 26px 0 12px; }
-    .section-title h2 { margin: 0; font-size: 1.25rem; }
-    .pill {
-      min-width: 28px; padding: 4px 8px; text-align: center;
-      border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: .8rem;
+
+    button:hover {
+      background: var(--panel-light);
     }
-    .live-pill { color: var(--accent); }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .status {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      margin: 28px 0 12px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .counter {
+      min-width: 29px;
+      padding: 4px 8px;
+
+      font-size: 0.8rem;
+      text-align: center;
+
+      color: var(--muted);
+      background: var(--panel-light);
+
+      border-radius: 999px;
+    }
+
+    .live-counter {
+      color: var(--accent);
+    }
+
     .league {
-      background: rgba(16,29,46,.86);
-      border: 1px solid var(--line);
+      margin-bottom: 13px;
+
+      background: rgba(16, 29, 46, 0.9);
+
+      border: 1px solid var(--border);
       border-radius: 16px;
-      margin-bottom: 12px;
+
       overflow: hidden;
-      backdrop-filter: blur(10px);
     }
+
     .league-button {
-      width: 100%;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
       display: flex;
       align-items: center;
       gap: 12px;
+
+      width: 100%;
       padding: 15px;
+
       text-align: left;
+
+      background: transparent;
+      border: 0;
+      border-radius: 0;
     }
-    .league-logo { width: 34px; height: 34px; object-fit: contain; }
-    .league-name { font-weight: 750; }
-    .league-country { display: block; color: var(--muted); font-size: .83rem; margin-top: 2px; }
-    .league-count { margin-left: auto; color: var(--muted); }
-    .chevron { transition: transform .2s ease; }
-    .league.open .chevron { transform: rotate(180deg); }
-    .games { display: none; border-top: 1px solid var(--line); }
-    .league.open .games { display: block; }
+
+    .league-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .league-info {
+      min-width: 0;
+    }
+
+    .league-name {
+      display: block;
+      font-weight: 800;
+    }
+
+    .league-country {
+      display: block;
+      margin-top: 2px;
+
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .league-count {
+      margin-left: auto;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .arrow {
+      font-size: 1.1rem;
+      transition: transform 0.2s ease;
+    }
+
+    .league.open .arrow {
+      transform: rotate(180deg);
+    }
+
+    .games {
+      display: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .league.open .games {
+      display: block;
+    }
+
     .game {
       display: grid;
-      grid-template-columns: minmax(100px, 145px) 1fr auto;
-      gap: 14px;
-      align-items: center;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
+      grid-template-columns: minmax(105px, 145px) 1fr auto;
+      gap: 15px;
+      align-items: start;
+
+      padding: 16px;
+
+      border-bottom: 1px solid var(--border);
     }
-    .game:last-child { border-bottom: 0; }
-    .game-time { color: var(--muted); font-size: .88rem; }
-    .teams { display: grid; gap: 8px; }
-    .team { display: flex; align-items: center; gap: 8px; font-weight: 650; }
-    .team img { width: 23px; height: 23px; object-fit: contain; }
-    .game-details {
-  display: grid;
-  gap: 12px;
-}
 
-.watch-box {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  font-size: 0.84rem;
-}
+    .game:last-child {
+      border-bottom: 0;
+    }
 
-.watch-label {
-  color: var(--muted);
-}
+    .game-time {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
 
-.watch-box strong {
-  color: var(--accent);
-}
+    .live-text {
+      color: var(--accent);
+    }
 
-.watch-box small {
-  width: 100%;
-  color: var(--muted);
-  font-size: 0.72rem;
-}
+    .game-content {
+      display: grid;
+      gap: 13px;
+      min-width: 0;
+    }
 
-.watch-channels {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  color: var(--muted);
-}
+    .teams {
+      display: grid;
+      gap: 9px;
+    }
 
-.watch-badge {
-  display: inline-flex;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: var(--panel-2);
-  color: var(--text);
-  font-size: 0.72rem;
-}
-    .score { font-size: 1.18rem; font-weight: 850; min-width: 55px; text-align: right; }
-    .live-text { color: var(--accent); }
-    .empty, .error {
+    .team {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+
+      min-width: 0;
+
+      font-weight: 700;
+    }
+
+    .team img {
+      width: 25px;
+      height: 25px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .team span {
+      overflow-wrap: anywhere;
+    }
+
+    .score {
+      min-width: 55px;
+
+      font-size: 1.15rem;
+      font-weight: 900;
+      line-height: 1.8;
+      text-align: right;
+    }
+
+    .watch-box {
+      display: grid;
+      gap: 7px;
+
+      padding: 11px 12px;
+
+      background: rgba(255, 255, 255, 0.045);
+
+      border: 1px solid var(--border);
+      border-radius: 11px;
+    }
+
+    .watch-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+
+      font-size: 0.85rem;
+    }
+
+    .watch-label {
+      color: var(--muted);
+    }
+
+    .watch-service {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .watch-channels {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .watch-badge {
+      display: inline-flex;
+      padding: 3px 7px;
+
+      color: var(--text);
+      background: var(--panel-light);
+
+      border-radius: 999px;
+    }
+
+    .watch-note {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .message {
       padding: 22px;
-      border: 1px dashed var(--line);
-      border-radius: 16px;
+
       color: var(--muted);
       text-align: center;
+
+      border: 1px dashed var(--border);
+      border-radius: 16px;
     }
-    .error { color: #ffd2d9; border-color: rgba(255,100,124,.35); }
-    footer { color: var(--muted); text-align: center; padding: 36px 14px; font-size: .82rem; }
-    @media (max-width: 640px) {
-      .game { grid-template-columns: 1fr auto; }
-      .game-time { grid-column: 1 / -1; }
-      .status { width: 100%; margin-left: 0; }
+
+    .error-message {
+      color: var(--error);
+      border-color: rgba(255, 139, 157, 0.4);
+    }
+
+    footer {
+      padding: 38px 14px;
+
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 680px) {
+      .status {
+        width: 100%;
+        margin-left: 0;
+      }
+
+      .game {
+        grid-template-columns: 1fr auto;
+      }
+
+      .game-time {
+        grid-column: 1 / -1;
+      }
     }
   </style>
 </head>
+
 <body>
   <header>
     <h1>Live Football</h1>
-    <p class="subtitle">Live and upcoming matches, organized by clickable leagues.</p>
+
+    <p class="subtitle">
+      Live games and upcoming games for today and tomorrow.
+    </p>
+
     <div class="toolbar">
-      <button id="refreshButton">↻ Refresh</button>
-      <select id="rangeSelect" aria-label="Upcoming game range">
-  <option value="1">Today and tomorrow</option>
-</select>
-      <span id="status" class="status">Loading matches…</span>
+      <button id="refreshButton" type="button">
+        ↻ Refresh games
+      </button>
+
+      <span id="status" class="status">
+        Loading games...
+      </span>
     </div>
   </header>
 
   <main>
-    <div class="section-title">
+    <div class="section-heading">
       <h2>Live now</h2>
-      <span id="liveCount" class="pill live-pill">0</span>
-    </div>
-    <section id="liveLeagues"></section>
 
-    <div class="section-title">
-      <h2>Upcoming</h2>
-      <span id="upcomingCount" class="pill">0</span>
+      <span id="liveCount" class="counter live-counter">
+        0
+      </span>
     </div>
-    <section id="upcomingLeagues"></section>
+
+    <section id="liveLeagues">
+      <div class="message">Loading live games...</div>
+    </section>
+
+    <div class="section-heading">
+      <h2>Upcoming</h2>
+
+      <span id="upcomingCount" class="counter">
+        0
+      </span>
+    </div>
+
+    <section id="upcomingLeagues">
+      <div class="message">Loading upcoming games...</div>
+    </section>
   </main>
 
-  <footer>Match data provided through API-Football.</footer>
+  <footer>
+    Scores and schedules provided by API-Football.
+    Viewing options are general U.S. broadcast-rights information.
+  </footer>
 
   <script>
-    const liveContainer = document.getElementById("liveLeagues");
-    const upcomingContainer = document.getElementById("upcomingLeagues");
-    const liveCount = document.getElementById("liveCount");
-    const upcomingCount = document.getElementById("upcomingCount");
-    const statusText = document.getElementById("status");
-    const rangeSelect = document.getElementById("rangeSelect");
-    const refreshButton = document.getElementById("refreshButton");
+    const liveContainer =
+      document.getElementById("liveLeagues");
 
-    const escapeHtml = (value = "") =>
-      String(value).replace(/[&<>"']/g, char => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-      })[char]);
+    const upcomingContainer =
+      document.getElementById("upcomingLeagues");
+
+    const liveCount =
+      document.getElementById("liveCount");
+
+    const upcomingCount =
+      document.getElementById("upcomingCount");
+
+    const statusText =
+      document.getElementById("status");
+
+    const refreshButton =
+      document.getElementById("refreshButton");
+
+
+    /*
+      GENERAL U.S. VIEWING OPTIONS
+
+      These are league-level broadcast rights.
+      They do not guarantee the exact channel for every game.
+    */
+
     const tvOptions = [
-  {
-    keywords: ["champions league", "uefa champions"],
-    main: "Paramount+",
-    channels: ["CBS", "CBS Sports Network", "CBS Sports Golazo Network"]
-  },
-  {
-    keywords: ["europa league", "uefa europa"],
-    main: "Paramount+",
-    channels: ["CBS Sports Network", "CBS Sports Golazo Network"]
-  },
-  {
-    keywords: ["conference league", "uefa conference"],
-    main: "Paramount+",
-    channels: ["CBS Sports Golazo Network"]
-  },
-  {
-    keywords: ["premier league"],
-    main: "Peacock",
-    channels: ["NBC", "USA Network", "Telemundo", "Universo"]
-  },
-  {
-    keywords: ["laliga", "la liga"],
-    main: "ESPN+",
-    channels: ["ESPN", "ESPN2", "ESPN Deportes"]
-  },
-  {
-    keywords: ["bundesliga"],
-    main: "ESPN+",
-    channels: ["ESPN", "ESPN2", "ABC", "ESPN Deportes"]
-  },
-  {
-    keywords: ["serie a"],
-    main: "Paramount+",
-    channels: ["CBS Sports Network", "CBS Sports Golazo Network"]
-  },
-  {
-    keywords: ["ligue 1"],
-    main: "beIN SPORTS",
-    channels: ["beIN SPORTS en Español"]
-  },
-  {
-    keywords: ["major league soccer", "mls"],
-    main: "Apple TV",
-    channels: ["FOX", "FS1", "FOX Deportes"]
-  },
-  {
-    keywords: ["liga mx"],
-    main: "ViX",
-    channels: ["Univision", "TUDN", "FOX Deportes", "Telemundo"]
-  },
-  {
-    keywords: ["fa cup"],
-    main: "ESPN+",
-    channels: ["ESPN networks"]
-  },
-  {
-    keywords: ["efl", "championship", "carabao cup", "league cup"],
-    main: "Paramount+",
-    channels: ["CBS Sports Golazo Network", "CBS Sports Network"]
-  },
-  {
-    keywords: ["nwsl"],
-    main: "NWSL+",
-    channels: ["CBS", "Paramount+", "ESPN+", "ION"]
-  },
-  {
-    keywords: ["usl championship", "usl league one"],
-    main: "CBS Sports Golazo Network",
-    channels: ["CBS Sports Network", "ESPN+"]
-  }
-];
+      {
+        keywords: [
+          "uefa champions league",
+          "champions league"
+        ],
+        service: "Paramount+",
+        channels: [
+          "CBS",
+          "CBS Sports Network",
+          "CBS Sports Golazo Network"
+        ]
+      },
+      {
+        keywords: [
+          "uefa europa league",
+          "europa league"
+        ],
+        service: "Paramount+",
+        channels: [
+          "CBS Sports Network",
+          "CBS Sports Golazo Network"
+        ]
+      },
+      {
+        keywords: [
+          "uefa conference league",
+          "conference league"
+        ],
+        service: "Paramount+",
+        channels: [
+          "CBS Sports Golazo Network"
+        ]
+      },
+      {
+        keywords: [
+          "premier league"
+        ],
+        service: "Peacock",
+        channels: [
+          "NBC",
+          "USA Network",
+          "Telemundo",
+          "Universo"
+        ]
+      },
+      {
+        keywords: [
+          "laliga",
+          "la liga"
+        ],
+        service: "ESPN+",
+        channels: [
+          "ESPN",
+          "ESPN2",
+          "ESPN Deportes"
+        ]
+      },
+      {
+        keywords: [
+          "bundesliga"
+        ],
+        service: "ESPN+",
+        channels: [
+          "ESPN",
+          "ESPN2",
+          "ABC",
+          "ESPN Deportes"
+        ]
+      },
+      {
+        keywords: [
+          "serie a"
+        ],
+        service: "Paramount+",
+        channels: [
+          "CBS Sports Network",
+          "CBS Sports Golazo Network"
+        ]
+      },
+      {
+        keywords: [
+          "ligue 1"
+        ],
+        service: "beIN SPORTS",
+        channels: [
+          "beIN SPORTS en Español"
+        ]
+      },
+      {
+        keywords: [
+          "major league soccer",
+          "mls"
+        ],
+        service: "Apple TV",
+        channels: [
+          "FOX",
+          "FS1",
+          "FOX Deportes"
+        ]
+      },
+      {
+        keywords: [
+          "liga mx"
+        ],
+        service: "ViX",
+        channels: [
+          "Univision",
+          "TUDN",
+          "FOX Deportes",
+          "Telemundo"
+        ]
+      },
+      {
+        keywords: [
+          "fa cup"
+        ],
+        service: "ESPN+",
+        channels: []
+      },
+      {
+        keywords: [
+          "efl championship",
+          "championship",
+          "carabao cup",
+          "efl cup"
+        ],
+        service: "Paramount+",
+        channels: [
+          "CBS Sports Network",
+          "CBS Sports Golazo Network"
+        ]
+      },
+      {
+        keywords: [
+          "nwsl"
+        ],
+        service: "NWSL+",
+        channels: [
+          "CBS",
+          "Paramount+",
+          "ESPN+",
+          "ION"
+        ]
+      },
+      {
+        keywords: [
+          "usl championship",
+          "usl league one"
+        ],
+        service: "CBS Sports Golazo Network",
+        channels: [
+          "CBS Sports Network",
+          "ESPN+"
+        ]
+      }
+    ];
 
-function getTVOptions(leagueName = "") {
-  const normalizedName = leagueName.toLowerCase();
 
-  const match = tvOptions.find(option =>
-    option.keywords.some(keyword =>
-      normalizedName.includes(keyword)
-    )
-  );
+    function escapeHtml(value = "") {
+      return String(value).replace(
+        /[&<>"']/g,
+        character => {
+          const replacements = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&#039;"
+          };
 
-  return match || {
-    main: "Check local listings",
-    channels: []
-  };
-}
-
-function watchMarkup(leagueName) {
-  const watch = getTVOptions(leagueName);
-
-  const channels = watch.channels.length
-    ? `
-      <div class="watch-channels">
-        Also possible: ${watch.channels
-          .map(channel => `<span class="watch-badge">${escapeHtml(channel)}</span>`)
-          .join("")}
-      </div>
-    `
-    : "";
-
-  return `
-    <div class="watch-box">
-      <span class="watch-label">How to watch</span>
-      <strong>${escapeHtml(watch.main)}</strong>
-      ${channels}
-      <small>Exact channel may vary by match and location.</small>
-    </div>
-  `;
-}
-    function groupByLeague(matches) {
-      return matches.reduce((groups, match) => {
-        const key = String(match.league.id);
-        if (!groups[key]) groups[key] = { league: match.league, matches: [] };
-        groups[key].matches.push(match);
-        return groups;
-      }, {});
+          return replacements[character];
+        }
+      );
     }
 
-    function formatKickoff(dateString) {
-      const date = new Date(dateString);
-      return {
-        day: new Intl.DateTimeFormat("en-US", {
-          weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago"
-        }).format(date),
-        time: new Intl.DateTimeFormat("en-US", {
-          hour: "numeric", minute: "2-digit", timeZone: "America/Chicago"
-        }).format(date)
+
+    function getWatchOptions(leagueName = "") {
+      const normalizedLeague =
+        leagueName.toLowerCase();
+
+      const matchingOption =
+        tvOptions.find(option =>
+          option.keywords.some(keyword =>
+            normalizedLeague.includes(keyword)
+          )
+        );
+
+      return matchingOption || {
+        service: "Check local listings",
+        channels: []
       };
     }
 
-  function gameMarkup(match, isLive) {
-  const kickoff = formatKickoff(match.fixture.date);
-  const status = match.fixture.status;
-  const homeGoals = match.goals.home ?? "–";
-  const awayGoals = match.goals.away ?? "–";
 
-  const statusLabel = isLive
-    ? `${escapeHtml(status.elapsed ?? "")}${status.elapsed ? "'" : ""} ${escapeHtml(status.short)}`
-    : kickoff.time;
+    function createWatchMarkup(leagueName) {
+      const watch =
+        getWatchOptions(leagueName);
 
-  return `
-    <article class="game">
-      <div class="game-time ${isLive ? "live-text" : ""}">
-        <strong>${isLive ? statusLabel : kickoff.day}</strong><br>
-        ${isLive ? "LIVE" : kickoff.time + " CT"}
-      </div>
+      const channelMarkup =
+        watch.channels.length > 0
+          ? `
+            <div class="watch-channels">
+              <span>Possible channels:</span>
 
-      <div class="game-details">
-        <div class="teams">
-          <div class="team">
-            <img src="${escapeHtml(match.teams.home.logo)}" alt="">
-            <span>${escapeHtml(match.teams.home.name)}</span>
+              ${watch.channels
+                .map(channel => `
+                  <span class="watch-badge">
+                    ${escapeHtml(channel)}
+                  </span>
+                `)
+                .join("")}
+            </div>
+          `
+          : "";
+
+      return `
+        <div class="watch-box">
+          <div class="watch-main">
+            <span class="watch-label">
+              How to watch:
+            </span>
+
+            <span class="watch-service">
+              ${escapeHtml(watch.service)}
+            </span>
           </div>
 
-          <div class="team">
-            <img src="${escapeHtml(match.teams.away.logo)}" alt="">
-            <span>${escapeHtml(match.teams.away.name)}</span>
+          ${channelMarkup}
+
+          <div class="watch-note">
+            Exact channel can vary by game and location.
           </div>
         </div>
-
-        ${watchMarkup(match.league.name)}
-      </div>
-
-      <div class="score">
-        ${isLive ? `${homeGoals}<br>${awayGoals}` : "vs"}
-      </div>
-    </article>
-  `;
-}
-
-function leagueMarkup(group, isLive) {
-    function leagueMarkup(group, isLive) {
-      const { league, matches } = group;
-      return `
-        <article class="league">
-          <button class="league-button" type="button" aria-expanded="false">
-            <img class="league-logo" src="${escapeHtml(league.logo)}" alt="">
-            <span>
-              <span class="league-name">${escapeHtml(league.name)}</span>
-              <span class="league-country">${escapeHtml(league.country)}</span>
-            </span>
-            <span class="league-count">${matches.length} game${matches.length === 1 ? "" : "s"}</span>
-            <span class="chevron">⌄</span>
-          </button>
-          <div class="games">
-            ${matches.map(match => gameMarkup(match, isLive)).join("")}
-          </div>
-        </article>`;
+      `;
     }
 
-    function render(container, matches, isLive) {
-      if (!matches.length) {
-        container.innerHTML = `<div class="empty">No ${isLive ? "live" : "upcoming"} matches found.</div>`;
-        return;
-      }
-      const groups = Object.values(groupByLeague(matches))
-        .sort((a, b) => a.league.name.localeCompare(b.league.name));
-      container.innerHTML = groups.map(group => leagueMarkup(group, isLive)).join("");
 
-      container.querySelectorAll(".league-button").forEach(button => {
-        button.addEventListener("click", () => {
-          const league = button.closest(".league");
-          const isOpen = league.classList.toggle("open");
-          button.setAttribute("aria-expanded", String(isOpen));
-        });
+    function groupMatchesByLeague(matches) {
+      return matches.reduce(
+        (groups, match) => {
+          const leagueId =
+            String(match.league.id);
+
+          if (!groups[leagueId]) {
+            groups[leagueId] = {
+              league: match.league,
+              matches: []
+            };
+          }
+
+          groups[leagueId].matches.push(match);
+
+          return groups;
+        },
+        {}
+      );
+    }
+
+
+    function formatKickoff(dateString) {
+      const kickoff =
+        new Date(dateString);
+
+      return {
+        date: new Intl.DateTimeFormat(
+          "en-US",
+          {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            timeZone: "America/Chicago"
+          }
+        ).format(kickoff),
+
+        time: new Intl.DateTimeFormat(
+          "en-US",
+          {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: "America/Chicago"
+          }
+        ).format(kickoff)
+      };
+    }
+
+
+    function createGameMarkup(match, isLive) {
+      const kickoff =
+        formatKickoff(match.fixture.date);
+
+      const status =
+        match.fixture.status || {};
+
+      const homeGoals =
+        match.goals?.home ?? "–";
+
+      const awayGoals =
+        match.goals?.away ?? "–";
+
+      const elapsed =
+        status.elapsed
+          ? `${status.elapsed}'`
+          : "";
+
+      const liveStatus =
+        `${elapsed} ${status.short || "LIVE"}`.trim();
+
+      const scoreMarkup =
+        isLive
+          ? `${homeGoals}<br>${awayGoals}`
+          : "vs";
+
+      return `
+        <article class="game">
+          <div class="game-time ${isLive ? "live-text" : ""}">
+            <strong>
+              ${isLive
+                ? escapeHtml(liveStatus)
+                : escapeHtml(kickoff.date)}
+            </strong>
+
+            <br>
+
+            ${isLive
+              ? "LIVE"
+              : `${escapeHtml(kickoff.time)} CT`}
+          </div>
+
+          <div class="game-content">
+            <div class="teams">
+              <div class="team">
+                <img
+                  src="${escapeHtml(match.teams.home.logo)}"
+                  alt=""
+                >
+
+                <span>
+                  ${escapeHtml(match.teams.home.name)}
+                </span>
+              </div>
+
+              <div class="team">
+                <img
+                  src="${escapeHtml(match.teams.away.logo)}"
+                  alt=""
+                >
+
+                <span>
+                  ${escapeHtml(match.teams.away.name)}
+                </span>
+              </div>
+            </div>
+
+            ${createWatchMarkup(match.league.name)}
+          </div>
+
+          <div class="score">
+            ${scoreMarkup}
+          </div>
+        </article>
+      `;
+    }
+
+
+    function createLeagueMarkup(group, isLive) {
+      const league =
+        group.league;
+
+      const matches =
+        group.matches;
+
+      return `
+        <article class="league">
+          <button
+            class="league-button"
+            type="button"
+            aria-expanded="false"
+          >
+            <img
+              class="league-logo"
+              src="${escapeHtml(league.logo)}"
+              alt=""
+            >
+
+            <span class="league-info">
+              <span class="league-name">
+                ${escapeHtml(league.name)}
+              </span>
+
+              <span class="league-country">
+                ${escapeHtml(league.country || "")}
+              </span>
+            </span>
+
+            <span class="league-count">
+              ${matches.length}
+              ${matches.length === 1 ? "game" : "games"}
+            </span>
+
+            <span class="arrow">
+              ⌄
+            </span>
+          </button>
+
+          <div class="games">
+            ${matches
+              .map(match =>
+                createGameMarkup(match, isLive)
+              )
+              .join("")}
+          </div>
+        </article>
+      `;
+    }
+
+
+    function addLeagueClickEvents(container) {
+      const buttons =
+        container.querySelectorAll(
+          ".league-button"
+        );
+
+      buttons.forEach(button => {
+        button.addEventListener(
+          "click",
+          () => {
+            const league =
+              button.closest(".league");
+
+            const isOpen =
+              league.classList.toggle("open");
+
+            button.setAttribute(
+              "aria-expanded",
+              String(isOpen)
+            );
+          }
+        );
       });
     }
 
+
+    function renderMatches(
+      container,
+      matches,
+      isLive
+    ) {
+      if (!Array.isArray(matches)) {
+        container.innerHTML = `
+          <div class="message error-message">
+            Match data was not formatted correctly.
+          </div>
+        `;
+
+        return;
+      }
+
+      if (matches.length === 0) {
+        container.innerHTML = `
+          <div class="message">
+            No ${isLive ? "live" : "upcoming"} games found.
+          </div>
+        `;
+
+        return;
+      }
+
+      const groupedMatches =
+        Object.values(
+          groupMatchesByLeague(matches)
+        ).sort(
+          (firstGroup, secondGroup) =>
+            firstGroup.league.name.localeCompare(
+              secondGroup.league.name
+            )
+        );
+
+      container.innerHTML =
+        groupedMatches
+          .map(group =>
+            createLeagueMarkup(group, isLive)
+          )
+          .join("");
+
+      addLeagueClickEvents(container);
+    }
+
+
+    async function readJsonResponse(response) {
+      const responseText =
+        await response.text();
+
+      try {
+        return JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          responseText ||
+          "The server returned an invalid response."
+        );
+      }
+    }
+
+
     async function loadMatches() {
-      statusText.textContent = "Loading matches…";
+      statusText.textContent =
+        "Loading games...";
+
       refreshButton.disabled = true;
 
       try {
-        const days = rangeSelect.value;
-       const response = await fetch(`/api/fixtures?days=${days}`);
-        const data = await response.json();
+        const response =
+          await fetch(
+            `/api/fixtures?days=1&t=${Date.now()}`,
+            {
+              cache: "no-store"
+            }
+          );
 
-        if (!response.ok) throw new Error(data.error || "Could not load matches.");
+        const data =
+          await readJsonResponse(response);
 
-        render(liveContainer, data.live, true);
-        render(upcomingContainer, data.upcoming, false);
-        liveCount.textContent = data.live.length;
-        upcomingCount.textContent = data.upcoming.length;
+        if (!response.ok) {
+          throw new Error(
+            data.details ||
+            data.error ||
+            "Could not load games."
+          );
+        }
 
-        const updated = new Date(data.updatedAt);
-        statusText.textContent = `Updated ${updated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+        const liveMatches =
+          Array.isArray(data.live)
+            ? data.live
+            : [];
+
+        const upcomingMatches =
+          Array.isArray(data.upcoming)
+            ? data.upcoming
+            : [];
+
+        liveCount.textContent =
+          String(liveMatches.length);
+
+        upcomingCount.textContent =
+          String(upcomingMatches.length);
+
+        renderMatches(
+          liveContainer,
+          liveMatches,
+          true
+        );
+
+        renderMatches(
+          upcomingContainer,
+          upcomingMatches,
+          false
+        );
+
+        const updatedAt =
+          data.updatedAt
+            ? new Date(data.updatedAt)
+            : new Date();
+
+        statusText.textContent =
+          `Updated ${updatedAt.toLocaleTimeString(
+            [],
+            {
+              hour: "numeric",
+              minute: "2-digit"
+            }
+          )}`;
       } catch (error) {
-        const message = `<div class="error">${escapeHtml(error.message)}</div>`;
-        liveContainer.innerHTML = message;
-        upcomingContainer.innerHTML = message;
-        statusText.textContent = "Could not load data";
+        console.error(error);
+
+        liveCount.textContent = "0";
+        upcomingCount.textContent = "0";
+
+        const errorMessage =
+          escapeHtml(
+            error.message ||
+            "Could not load games."
+          );
+
+        liveContainer.innerHTML = `
+          <div class="message error-message">
+            ${errorMessage}
+          </div>
+        `;
+
+        upcomingContainer.innerHTML = `
+          <div class="message error-message">
+            ${errorMessage}
+          </div>
+        `;
+
+        statusText.textContent =
+          "Could not load games";
       } finally {
         refreshButton.disabled = false;
       }
     }
 
-    refreshButton.addEventListener("click", loadMatches);
-    rangeSelect.addEventListener("change", loadMatches);
+
+    refreshButton.addEventListener(
+      "click",
+      loadMatches
+    );
+
+
     loadMatches();
+
+
+    /*
+      Refresh every five minutes.
+
+      Your Vercel API uses caching, which helps avoid
+      wasting too many API-Football requests.
+    */
+
+    setInterval(
+      loadMatches,
+      5 * 60 * 1000
+    );
   </script>
 </body>
 </html>
