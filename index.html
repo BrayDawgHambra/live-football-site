@@ -92,6 +92,53 @@
     .teams { display: grid; gap: 8px; }
     .team { display: flex; align-items: center; gap: 8px; font-weight: 650; }
     .team img { width: 23px; height: 23px; object-fit: contain; }
+    .game-details {
+  display: grid;
+  gap: 12px;
+}
+
+.watch-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  font-size: 0.84rem;
+}
+
+.watch-label {
+  color: var(--muted);
+}
+
+.watch-box strong {
+  color: var(--accent);
+}
+
+.watch-box small {
+  width: 100%;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.watch-channels {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: var(--muted);
+}
+
+.watch-badge {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.72rem;
+}
     .score { font-size: 1.18rem; font-weight: 850; min-width: 55px; text-align: right; }
     .live-text { color: var(--accent); }
     .empty, .error {
@@ -152,7 +199,116 @@
       String(value).replace(/[&<>"']/g, char => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
       })[char]);
+    const tvOptions = [
+  {
+    keywords: ["champions league", "uefa champions"],
+    main: "Paramount+",
+    channels: ["CBS", "CBS Sports Network", "CBS Sports Golazo Network"]
+  },
+  {
+    keywords: ["europa league", "uefa europa"],
+    main: "Paramount+",
+    channels: ["CBS Sports Network", "CBS Sports Golazo Network"]
+  },
+  {
+    keywords: ["conference league", "uefa conference"],
+    main: "Paramount+",
+    channels: ["CBS Sports Golazo Network"]
+  },
+  {
+    keywords: ["premier league"],
+    main: "Peacock",
+    channels: ["NBC", "USA Network", "Telemundo", "Universo"]
+  },
+  {
+    keywords: ["laliga", "la liga"],
+    main: "ESPN+",
+    channels: ["ESPN", "ESPN2", "ESPN Deportes"]
+  },
+  {
+    keywords: ["bundesliga"],
+    main: "ESPN+",
+    channels: ["ESPN", "ESPN2", "ABC", "ESPN Deportes"]
+  },
+  {
+    keywords: ["serie a"],
+    main: "Paramount+",
+    channels: ["CBS Sports Network", "CBS Sports Golazo Network"]
+  },
+  {
+    keywords: ["ligue 1"],
+    main: "beIN SPORTS",
+    channels: ["beIN SPORTS en Español"]
+  },
+  {
+    keywords: ["major league soccer", "mls"],
+    main: "Apple TV",
+    channels: ["FOX", "FS1", "FOX Deportes"]
+  },
+  {
+    keywords: ["liga mx"],
+    main: "ViX",
+    channels: ["Univision", "TUDN", "FOX Deportes", "Telemundo"]
+  },
+  {
+    keywords: ["fa cup"],
+    main: "ESPN+",
+    channels: ["ESPN networks"]
+  },
+  {
+    keywords: ["efl", "championship", "carabao cup", "league cup"],
+    main: "Paramount+",
+    channels: ["CBS Sports Golazo Network", "CBS Sports Network"]
+  },
+  {
+    keywords: ["nwsl"],
+    main: "NWSL+",
+    channels: ["CBS", "Paramount+", "ESPN+", "ION"]
+  },
+  {
+    keywords: ["usl championship", "usl league one"],
+    main: "CBS Sports Golazo Network",
+    channels: ["CBS Sports Network", "ESPN+"]
+  }
+];
 
+function getTVOptions(leagueName = "") {
+  const normalizedName = leagueName.toLowerCase();
+
+  const match = tvOptions.find(option =>
+    option.keywords.some(keyword =>
+      normalizedName.includes(keyword)
+    )
+  );
+
+  return match || {
+    main: "Check local listings",
+    channels: []
+  };
+}
+
+function watchMarkup(leagueName) {
+  const watch = getTVOptions(leagueName);
+
+  const channels = watch.channels.length
+    ? `
+      <div class="watch-channels">
+        Also possible: ${watch.channels
+          .map(channel => `<span class="watch-badge">${escapeHtml(channel)}</span>`)
+          .join("")}
+      </div>
+    `
+    : "";
+
+  return `
+    <div class="watch-box">
+      <span class="watch-label">How to watch</span>
+      <strong>${escapeHtml(watch.main)}</strong>
+      ${channels}
+      <small>Exact channel may vary by match and location.</small>
+    </div>
+  `;
+}
     function groupByLeague(matches) {
       return matches.reduce((groups, match) => {
         const key = String(match.league.id);
@@ -174,15 +330,46 @@
       };
     }
 
-    function gameMarkup(match, isLive) {
-      const kickoff = formatKickoff(match.fixture.date);
-      const status = match.fixture.status;
-      const homeGoals = match.goals.home ?? "–";
-      const awayGoals = match.goals.away ?? "–";
-      const statusLabel = isLive
-        ? `${escapeHtml(status.elapsed ?? "")}${status.elapsed ? "'" : ""} ${escapeHtml(status.short)}`
-        : kickoff.time;
+   function gameMarkup(match, isLive) {
+  const kickoff = formatKickoff(match.fixture.date);
+  const status = match.fixture.status;
+  const homeGoals = match.goals.home ?? "–";
+  const awayGoals = match.goals.away ?? "–";
 
+  const statusLabel = isLive
+    ? `${escapeHtml(status.elapsed ?? "")}${status.elapsed ? "'" : ""} ${escapeHtml(status.short)}`
+    : kickoff.time;
+
+  return `
+    <article class="game">
+      <div class="game-time ${isLive ? "live-text" : ""}">
+        <strong>${isLive ? statusLabel : kickoff.day}</strong><br>
+        ${isLive ? "LIVE" : kickoff.time + " CT"}
+      </div>
+
+      <div class="game-details">
+        <div class="teams">
+          <div class="team">
+            <img src="${escapeHtml(match.teams.home.logo)}" alt="">
+            <span>${escapeHtml(match.teams.home.name)}</span>
+          </div>
+
+          <div class="team">
+            <img src="${escapeHtml(match.teams.away.logo)}" alt="">
+            <span>${escapeHtml(match.teams.away.name)}</span>
+          </div>
+        </div>
+
+        ${watchMarkup(match.league.name)}
+      </div>
+
+      <div class="score">
+        ${isLive ? `${homeGoals}<br>${awayGoals}` : "vs"}
+      </div>
+    </article>
+  `;
+}
+    
       return `
         <article class="game">
           <div class="game-time ${isLive ? "live-text" : ""}">
