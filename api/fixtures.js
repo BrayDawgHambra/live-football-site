@@ -48,18 +48,14 @@ export default async function handler(request, response) {
     });
   }
 
-  const requestedDays = Number(request.query.days || 3);
-  const days = [1, 3, 7].includes(requestedDays)
-    ? requestedDays
-    : 3;
+  const days = 1;
 
   try {
     const dates = [];
 
-    for (let day = 0; day <= days; day++) {
-      dates.push(dateInChicago(day));
-    }
-
+    dates.push(dateInChicago(0));
+dates.push(dateInChicago(1));
+    
     const livePromise = apiRequest(
       "/fixtures?live=all&timezone=America%2FChicago",
       apiKey
